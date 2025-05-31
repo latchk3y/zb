@@ -17,6 +17,8 @@
 
 ### INSTALLATION
 
+In order to be able to build the executable, you must have zig installed. (I may add a "release" version to skip this part in the future.)
+
 1. Clone this repository and move into the directory:
 ```bash
 git clone https://github.com/latchk3y/zb.git && cd zb
