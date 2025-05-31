@@ -24,6 +24,7 @@ git clone https://github.com/latchk3y/zb.git && cd zb
 
 2. Run the install script:
 ```bash
+chmod +x install.sh
 ./install.sh
 ```
 
