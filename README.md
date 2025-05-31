@@ -19,7 +19,7 @@
 
 1. Clone this repository and move into the directory:
 ```bash
-git clone https://github.com/yourusername/zb.git && cd zb
+git clone https://github.com/latchk3y/zb.git && cd zb
 ```
 
 2. Run the install script:
