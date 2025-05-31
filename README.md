@@ -17,7 +17,7 @@
 
 ### INSTALLATION
 
-In order to be able to build the executable, [you must have zig installed.](https://ziglang.org/download/) 
+In order to be able to build the executable, [you must have zig installed.](https://ziglang.org/download/).
 
 1. Clone this repository and move into the directory:
 ```bash
@@ -59,6 +59,12 @@ zb -r proj
 - **Intuitive**: Simple commands with helpful error messages
 - **Persistent**: Bookmarks stored in `~/.config/.zb_bookmarks`
 - **Shell completion**: Tab-completion for bookmark names (bash/zsh/fish)
+
+### CONTRIBUTION
+Getting this particular program to work on Windows is technically possible, however, I have spent the majority 
+of development on Linux. If someone with more experience using the actual nightmare that is Windows CLI tools
+would be willing to look over the (mostly generated) code for the windows side of this particular program, that 
+would be greatly appreciated.
 
 ### LICENSE
 Unlicense - Do whatever you want with this code. No warranties, no restrictions.
