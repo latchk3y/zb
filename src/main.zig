@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 
 pub fn main() !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
@@ -40,9 +41,16 @@ pub fn main() !void {
 }
 
 fn getBookmarksPath(allocator: std.mem.Allocator) ![]const u8 {
-    const home = std.process.getEnvVarOwned(allocator, "HOME") catch return error.HomeNotFound;
+    const home = if (builtin.os.tag == .windows)
+        std.process.getEnvVarOwned(allocator, "USERPROFILE") catch return error.HomeNotFound
+    else
+        std.process.getEnvVarOwned(allocator, "HOME") catch return error.HomeNotFound;
     defer allocator.free(home);
-    return std.fs.path.join(allocator, &[_][]const u8{ home, ".config", ".zb_bookmarks" });
+
+    return if (builtin.os.tag == .windows)
+        try std.fs.path.join(allocator, &[_][]const u8{ home, "zb_bookmarks" })
+    else
+        try std.fs.path.join(allocator, &[_][]const u8{ home, ".config", ".zb_bookmarks" });
 }
 
 fn readBookmarks(allocator: std.mem.Allocator) !std.StringHashMap([]const u8) {

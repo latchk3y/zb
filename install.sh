@@ -1,9 +1,18 @@
 #!/bin/bash
 
 # Configuration
-INSTALL_DIR="$HOME/.config/zig-bookmarker"
-BIN_NAME="zb"
-SCRIPT_NAME="run.sh"
+#!/bin/bash
+# Detect OS and set paths
+if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
+    INSTALL_DIR="$APPDATA/zig-bookmarker"
+    BIN_NAME="zb.exe"
+	SCRIPT_NAME="run.bat"
+else
+    INSTALL_DIR="$HOME/.config/zig-bookmarker"
+    BIN_NAME="zb"
+	SCRIPT_NAME="run.sh"
+fi
+
 BASHRC="$HOME/.bashrc"
 
 # Step 1: Compile the program
