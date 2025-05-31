@@ -1,25 +1,28 @@
 @echo off
 setlocal enabledelayedexpansion
 
-:: Get the path from zb.exe
 set ZB_PATH=%~dp0zb.exe
-for /f "delims=" %%d in ('%ZB_PATH% %*') do set "TARGET_DIR=%%d"
 
-:: Check if we got a directory path
-if not defined TARGET_DIR exit /b 1
-
-:: Special case for help/listing commands
-echo %TARGET_DIR%|findstr /r "^zb -" >nul && (
-    echo %TARGET_DIR%
-    exit /b 0
+:: Special case for help/list commands
+for %%a in (-h --help -l --list) do (
+    if "%~1"=="%%a" (
+        %ZB_PATH% %*
+        exit /b %errorlevel%
+    )
 )
 
-:: Try to change directory
-cd /d "%TARGET_DIR%" 2>nul
-if errorlevel 1 (
-    echo Failed to cd to: %TARGET_DIR%
-    exit /b 1
+:: Get directory from zb.exe
+for /f "tokens=*" %%d in ('%ZB_PATH% %*') do (
+    set "DIR=%%d"
+    if "!DIR:~0,5!"=="error" (
+        echo !DIR!
+        exit /b 1
+    )
+    
+    cd /d "!DIR!" 2>nul
+    if errorlevel 1 (
+        echo Failed to cd to: !DIR!
+        exit /b 1
+    )
+    echo Jumped to: !DIR!
 )
-
-:: Success - print and stay in new directory
-echo Jumped to: %TARGET_DIR%

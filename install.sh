@@ -48,22 +48,26 @@ fi
 echo -e "\nStep 3/5: Copying shell script..."
 if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
     # Windows batch script
-    cat << 'EOF' > "$INSTALL_DIR/$SCRIPT_NAME"
-@echo off
-setlocal
-set ZB_PATH=%~dp0zb.exe
-
-%ZB_PATH% %*
-if errorlevel 1 exit /b %errorlevel%
-
-for /f "delims=" %%d in ('%ZB_PATH% %*') do (
-    cd /d "%%d" 2>nul
-    if errorlevel 1 (
-        echo Failed to cd to: %%d
-        exit /b 1
-    )
-    echo Jumped to: %%d
-)
+cat << 'EOF' > "$INSTALL_DIR/zb.ps1"
+function zb {
+    $result = & "$env:APPDATA\zig-bookmarker\zb.exe" @args
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error $result
+        return
+    }
+    
+    if ($args[0] -in '-h','--help','-l','--list') {
+        $result
+        return
+    }
+    
+    try {
+        Set-Location $result
+        "Jumped to: $result"
+    } catch {
+        Write-Error "Failed to cd to: $result"
+    }
+}
 EOF
     echo "✅ Created Windows batch script"
 else
