@@ -17,7 +17,7 @@
 
 ### INSTALLATION
 
-In order to be able to build the executable, you must have zig installed. (I may add a "release" version to skip this part in the future.)
+In order to be able to build the executable, [you must have zig installed.](https://ziglang.org/download/) 
 
 1. Clone this repository and move into the directory:
 ```bash
