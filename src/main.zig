@@ -225,6 +225,7 @@ fn handlePrune(allocator: std.mem.Allocator) !void {
 
 fn handleJump(allocator: std.mem.Allocator, target: [:0]const u8) !void {
     const stdout = std.io.getStdOut().writer();
+    const is_windows = builtin.os.tag == .windows;
 
     // First check if target is a local directory in current working directory
     const cwd = try std.fs.cwd().realpathAlloc(allocator, ".");
@@ -248,28 +249,41 @@ fn handleJump(allocator: std.mem.Allocator, target: [:0]const u8) !void {
     }
 
     if (bookmarks.get(target)) |path| {
-        // Verify the bookmarked path exists
-        if (std.fs.accessAbsolute(path, .{})) {
+        if (is_windows) {
+            // Windows - just return the path, let the shell handle cd
             try stdout.print("{s}\n", .{path});
             return;
-        } else |_| {
-            std.debug.print("error: bookmarked path '{s}' no longer exists\n", .{path});
-            std.process.exit(1);
+        } else {
+            // Unix - verify path exists
+            if (std.fs.accessAbsolute(path, .{})) {
+                try stdout.print("{s}\n", .{path});
+                return;
+            } else |_| {
+                std.debug.print("error: bookmarked path '{s}' no longer exists\n", .{path});
+                std.process.exit(1);
+            }
         }
     }
 
     // Finally check if target is a valid path (absolute or relative)
     const resolved_path = try std.fs.path.resolve(allocator, &.{target});
 
-    if (std.fs.path.isAbsolute(resolved_path)) {
-        if (std.fs.accessAbsolute(resolved_path, .{})) {
-            try stdout.print("{s}\n", .{resolved_path});
-            return;
-        } else |err| {
-            std.debug.print("error: path '{s}' not accessible ({s})\n", .{ resolved_path, @errorName(err) });
-        }
+    if (is_windows) {
+        // Windows - return the resolved path
+        try stdout.print("{s}\n", .{resolved_path});
+        return;
     } else {
-        std.debug.print("error: resolved path is not absolute: '{s}'\n", .{resolved_path});
+        // Unix - verify path is absolute and accessible
+        if (std.fs.path.isAbsolute(resolved_path)) {
+            if (std.fs.accessAbsolute(resolved_path, .{})) {
+                try stdout.print("{s}\n", .{resolved_path});
+                return;
+            } else |err| {
+                std.debug.print("error: path '{s}' not accessible ({s})\n", .{ resolved_path, @errorName(err) });
+            }
+        } else {
+            std.debug.print("error: resolved path is not absolute: '{s}'\n", .{resolved_path});
+        }
     }
 
     // If nothing worked, show help

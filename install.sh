@@ -5,13 +5,13 @@ if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
     # Windows configuration
     INSTALL_DIR="$APPDATA/zig-bookmarker"
     BIN_NAME="zb.exe"
-    SCRIPT_NAME="zb.bat"
+    SCRIPT_NAME="run.bat"
     PROFILE="$USERPROFILE/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1"
 else
     # Unix-like configuration
     INSTALL_DIR="$HOME/.config/zig-bookmarker"
     BIN_NAME="zb"
-    SCRIPT_NAME="zb.sh"
+    SCRIPT_NAME="run.sh"
     BASHRC="$HOME/.bashrc"
 fi
 
