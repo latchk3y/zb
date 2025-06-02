@@ -67,8 +67,8 @@ have resulted in running head-long into the substantial amount of baby-proofing 
 
 The core Zig file has already been tested and definitively returns what it's supposed to, alongside with the installation
 script moving everything to the appropriate folders, so all that remains is a batch file (run.bat) to make use of these
-functions. If you're familiar with how batch files work and think you can make use of the core zig file to do it, please feel
-free to get in touch!
+functions. If you're familiar with how batch files work and think you can make use of the core Zig file to change directories 
+like it's supposed to, please feel free to get in touch!
 
 ### LICENSE
 Unlicense - Do whatever you want with this code. No warranties, no restrictions.
