@@ -3,19 +3,19 @@
 # Detect OS and set paths
 if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
     # Windows configuration
+	# Be aware that currently, because there is no run.bat, this will very likely
+	# result in a substantial error. You've been warned.
     INSTALL_DIR="$APPDATA/zig-bookmarker"
     BIN_NAME="zb.exe"
     SCRIPT_NAME="run.bat"
     PROFILE="$USERPROFILE/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1"
 else
-    # Unix-like configuration
     INSTALL_DIR="$HOME/.config/zig-bookmarker"
     BIN_NAME="zb"
     SCRIPT_NAME="run.sh"
     BASHRC="$HOME/.bashrc"
 fi
 
-# Step 1: Compile the program
 echo "Step 1/5: Compiling the program..."
 if zig build -Doptimize=ReleaseSafe; then
     echo "✅ Successfully compiled the program"
@@ -24,7 +24,6 @@ else
     return 1
 fi
 
-# Step 2: Create installation directory and copy executable
 echo -e "\nStep 2/5: Setting up installation directory..."
 mkdir -p "$INSTALL_DIR"
 if cp zig-out/bin/"$BIN_NAME" "$INSTALL_DIR"/; then
@@ -44,34 +43,32 @@ else
     return 1
 fi
 
-# Step 3: Copy the shell script
 echo -e "\nStep 3/5: Copying shell script..."
 if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
     # Windows batch script
-cat << 'EOF' > "$INSTALL_DIR/zb.ps1"
-function zb {
-    $result = & "$env:APPDATA\zig-bookmarker\zb.exe" @args
-    if ($LASTEXITCODE -ne 0) {
-        Write-Error $result
-        return
-    }
-    
-    if ($args[0] -in '-h','--help','-l','--list') {
-        $result
-        return
-    }
-    
-    try {
-        Set-Location $result
-        "Jumped to: $result"
-    } catch {
-        Write-Error "Failed to cd to: $result"
-    }
-}
-EOF
+	cat << 'EOF' > "$INSTALL_DIR/zb.ps1"
+	function zb {
+		$result = & "$env:APPDATA\zig-bookmarker\zb.exe" @args
+		if ($LASTEXITCODE -ne 0) {
+			Write-Error $result
+			return
+		}
+		
+		if ($args[0] -in '-h','--help','-l','--list') {
+			$result
+			return
+		}
+		
+		try {
+			Set-Location $result
+			"Jumped to: $result"
+		} catch {
+			Write-Error "Failed to cd to: $result"
+		}
+	}
+	EOF
     echo "✅ Created Windows batch script"
 else
-    # Unix shell script
     if cp src/"$SCRIPT_NAME" "$INSTALL_DIR"/; then
         chmod +x "$INSTALL_DIR"/"$SCRIPT_NAME"
         echo "✅ Copied and made executable: $SCRIPT_NAME"
@@ -81,7 +78,6 @@ else
     fi
 fi
 
-# Step 4: Configure shell integration
 echo -e "\nStep 4/5: Configuring shell integration..."
 if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
     # PowerShell profile configuration
@@ -96,7 +92,6 @@ if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
         echo "✅ Added configuration to PowerShell profile"
     fi
 else
-    # Bash configuration
     MARKER="# zig-bookmarker configuration"
     CONFIG="\n$MARKER\nzb() {\n    source $INSTALL_DIR/$SCRIPT_NAME \"\$@\"\n}\n"
 
@@ -108,7 +103,6 @@ else
     fi
 fi
 
-# Step 5: Set up completion
 echo -e "\nStep 5/5: Setting up completion..."
 if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
     # PowerShell completion
@@ -121,7 +115,6 @@ if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
         echo "✅ Added tab completion to PowerShell profile"
     fi
 else
-    # Bash completion
     COMPLETION="\n# zb command completion\n_zb_completion() {\n    local cur=\${COMP_WORDS[COMP_CWORD]}\n    if [[ \${#COMP_WORDS[@]} -eq 2 ]]; then\n        COMPREPLY=(\$(compgen -W \"-a -r -R -l -p -h\" -- \"\$cur\"))\n    else\n        local bookmarks\n        bookmarks=\$($INSTALL_DIR/$BIN_NAME -l | awk -F': ' '{print \$1}')\n        COMPREPLY=(\$(compgen -W \"\$bookmarks\" -- \"\$cur\"))\n    fi\n}\ncomplete -F _zb_completion zb"
 
     if grep -qF "_zb_completion" "$BASHRC"; then
@@ -132,7 +125,6 @@ else
     fi
 fi
 
-# Final instructions
 echo -e "\n🎉 Installation complete!"
 if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
     echo -e "To start using zb:"

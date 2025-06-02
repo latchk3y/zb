@@ -61,10 +61,14 @@ zb -r proj
 - **Shell completion**: Tab-completion for bookmark names (bash/zsh/fish)
 
 ### CONTRIBUTION
-Getting this particular program to work on Windows is technically possible, however, I have spent the majority 
-of development on Linux. If someone with more experience using the actual nightmare that is Windows CLI tools
-would be willing to look over the (mostly generated) code for the windows side of this particular program, that 
-would be greatly appreciated.
+Getting this particular program to work on Windows is technically possible. However, my primary operating
+system is Linux, and my very limited attempts at trying to get this to work on Windows via DeepSeek generation
+have resulted in running head-long into the substantial amount of baby-proofing on that operating system.
+
+The core Zig file has already been tested and definitively returns what it's supposed to, alongside with the installation
+script moving everything to the appropriate folders, so all that remains is a batch file (run.bat) to make use of these
+functions. If you're familiar with how batch files work and think you can make use of the core zig file to do it, please feel
+free to get in touch!
 
 ### LICENSE
 Unlicense - Do whatever you want with this code. No warranties, no restrictions.
