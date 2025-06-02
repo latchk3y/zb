@@ -40,6 +40,54 @@ pub fn main() !void {
     }
 }
 
+fn colorizeText(text: []const u8, color: enum { red, yellow, green, blue }) []const u8 {
+    const prefix = switch (color) {
+        .red => "\x1b[31m",
+        .yellow => "\x1b[33m",
+        .green => "\x1b[32m",
+        .blue => "\x1b[34m",
+    };
+    const suffix = "\x1b[0m";
+
+    var buf: [256]u8 = undefined;
+    return std.fmt.bufPrint(&buf, "{s}{s}{s}", .{ prefix, text, suffix }) catch text;
+}
+
+fn printHelp(writer: anytype) !void {
+    // Pre-compute colored strings
+    const warning = blk: {
+        var buf: [256]u8 = undefined;
+        break :blk std.fmt.bufPrint(&buf, "{s}", .{colorizeText("(WARNING: This CANNOT be undone!)", .red)}) catch "(WARNING: This CANNOT be undone!)";
+    };
+
+    const path = blk: {
+        var buf: [256]u8 = undefined;
+        break :blk std.fmt.bufPrint(&buf, "{s}", .{colorizeText("~/.config/.zb_bookmarks", .blue)}) catch "~/.config/.zb_bookmarks";
+    };
+
+    try writer.print(
+        \\zb - Zig Bookmarker
+        \\
+        \\Usage:
+        \\  zb [options] [bookmark|path]
+        \\
+        \\Options:
+        \\  -a <name> [path]   Add bookmark (current dir if path omitted)
+        \\  -r <name>          Remove bookmark
+        \\  -R                 Remove all bookmarks {s}
+        \\  -l                 List bookmarks
+        \\  -p                 Prune invalid bookmarks
+        \\  -h                 Show this help
+        \\
+        \\Without options:
+        \\  <bookmark>    Jump to bookmarked directory
+        \\  <path>        Jump to specified directory
+        \\
+        \\Bookmarks are stored at: {s}
+        \\
+    , .{ warning, path });
+}
+
 fn getBookmarksPath(allocator: std.mem.Allocator) ![]const u8 {
     const home = if (builtin.os.tag == .windows)
         std.process.getEnvVarOwned(allocator, "USERPROFILE") catch return error.HomeNotFound
@@ -101,33 +149,9 @@ fn writeBookmarks(allocator: std.mem.Allocator, bookmarks: *std.StringHashMap([]
     }
 }
 
-fn printHelp(writer: anytype) !void {
-    try writer.writeAll(
-        \\zb - Directory Bookmark Manager
-        \\
-        \\Usage:
-        \\  zb [options] [bookmark|path]
-        \\
-        \\Options:
-        \\  -a <name> [path]   Add bookmark (current dir if path omitted)
-        \\  -r <name>          Remove bookmark
-        \\  -R                 Remove all bookmarks
-        \\  -l                 List bookmarks
-        \\  -p                 Prune invalid bookmarks
-        \\  -h                 Show this help
-        \\
-        \\Without options:
-        \\  <bookmark>    Jump to bookmarked directory
-        \\  <path>        Jump to specified directory
-        \\
-        \\Bookmarks are stored at: ~/.config/.zb_bookmarks
-        \\
-    );
-}
-
 fn handleAdd(allocator: std.mem.Allocator, args: [][:0]u8) !void {
     if (args.len < 3) {
-        std.debug.print("error: missing bookmark name\n", .{});
+        std.debug.print("{s}", .{colorizeText("error: missing bookmark name\n", .red)});
         try printHelp(std.io.getStdErr().writer());
         std.process.exit(1);
     }
@@ -163,7 +187,7 @@ fn handleRemove(allocator: std.mem.Allocator, args: [][:0]u8, remove_all: bool) 
         bookmarks.clearAndFree();
     } else {
         if (args.len < 3) {
-            std.debug.print("error: missing bookmark name\n", .{});
+            std.debug.print("{s}", .{colorizeText("error: missing bookmark name\n", .red)});
             try printHelp(std.io.getStdErr().writer());
             std.process.exit(1);
         }
@@ -175,22 +199,27 @@ fn handleRemove(allocator: std.mem.Allocator, args: [][:0]u8, remove_all: bool) 
 
 fn handleList(allocator: std.mem.Allocator) !void {
     var bookmarks = try readBookmarks(allocator);
-    defer {
-        var mutable_bookmarks = bookmarks;
-        mutable_bookmarks.deinit();
-    }
+    defer bookmarks.deinit();
 
     const stdout = std.io.getStdOut().writer();
     var it = bookmarks.iterator();
+
     while (it.next()) |entry| {
         const exists = blk: {
             std.fs.accessAbsolute(entry.value_ptr.*, .{}) catch break :blk false;
             break :blk true;
         };
+
+        const status = if (exists)
+            try std.fmt.allocPrint(allocator, "[{s}]", .{colorizeText("OK", .green)})
+        else
+            try std.fmt.allocPrint(allocator, "[{s}]", .{colorizeText("MISSING", .red)});
+        defer allocator.free(status);
+
         try stdout.print("{s}: {s} {s}\n", .{
             entry.key_ptr.*,
             entry.value_ptr.*,
-            if (exists) "[OK]" else "[MISSING]",
+            status,
         });
     }
 }
@@ -227,21 +256,17 @@ fn handleJump(allocator: std.mem.Allocator, target: [:0]const u8) !void {
     const stdout = std.io.getStdOut().writer();
     const is_windows = builtin.os.tag == .windows;
 
-    // First check if target is a local directory in current working directory
     const cwd = try std.fs.cwd().realpathAlloc(allocator, ".");
     defer allocator.free(cwd);
 
-    // Create candidate path: current directory + target
     const candidate = try std.fs.path.join(allocator, &[_][]const u8{ cwd, target });
     defer allocator.free(candidate);
 
-    // Check if candidate exists and is accessible
     if (std.fs.accessAbsolute(candidate, .{})) {
         try stdout.print("{s}\n", .{candidate});
         return;
-    } else |_| {} // Ignore errors, we'll try other options
+    } else |_| {}
 
-    // Then check if target is a bookmark
     var bookmarks = try readBookmarks(allocator);
     defer {
         var mutable_bookmarks = bookmarks;
@@ -250,11 +275,9 @@ fn handleJump(allocator: std.mem.Allocator, target: [:0]const u8) !void {
 
     if (bookmarks.get(target)) |path| {
         if (is_windows) {
-            // Windows - just return the path, let the shell handle cd
             try stdout.print("{s}\n", .{path});
             return;
         } else {
-            // Unix - verify path exists
             if (std.fs.accessAbsolute(path, .{})) {
                 try stdout.print("{s}\n", .{path});
                 return;
@@ -265,15 +288,12 @@ fn handleJump(allocator: std.mem.Allocator, target: [:0]const u8) !void {
         }
     }
 
-    // Finally check if target is a valid path (absolute or relative)
     const resolved_path = try std.fs.path.resolve(allocator, &.{target});
 
     if (is_windows) {
-        // Windows - return the resolved path
         try stdout.print("{s}\n", .{resolved_path});
         return;
     } else {
-        // Unix - verify path is absolute and accessible
         if (std.fs.path.isAbsolute(resolved_path)) {
             if (std.fs.accessAbsolute(resolved_path, .{})) {
                 try stdout.print("{s}\n", .{resolved_path});
@@ -286,7 +306,6 @@ fn handleJump(allocator: std.mem.Allocator, target: [:0]const u8) !void {
         }
     }
 
-    // If nothing worked, show help
     try printHelp(std.io.getStdErr().writer());
     std.process.exit(1);
 }
