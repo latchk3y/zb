@@ -54,7 +54,7 @@ zb -r proj
 ```
 
 ### KEY FEATURES
-- **Blazing fast**: Written in Zig for maximum performance
+- **Fast**: Written in Zig for maximum performance
 - **Reliable**: Built-in path validation and error handling
 - **Intuitive**: Simple commands with helpful error messages
 - **Persistent**: Bookmarks stored in `~/.config/.zb_bookmarks`
